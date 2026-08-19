@@ -6,6 +6,40 @@
 -- Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Make this schema safe to rerun without deleting tables or user data.
+DO $$
+DECLARE
+  policy_record RECORD;
+BEGIN
+  FOR policy_record IN
+    SELECT * FROM (VALUES
+      ('Users can view own profile', 'profiles'),
+      ('Users can update own profile', 'profiles'),
+      ('Users can insert own profile', 'profiles'),
+      ('Users can manage own skills', 'skills'),
+      ('Users can manage own resumes', 'resumes'),
+      ('Users can manage own quizzes', 'quizzes'),
+      ('Users can read questions of accessible quizzes', 'quiz_questions'),
+      ('Users can manage own attempts', 'quiz_attempts'),
+      ('Users can manage own skill gap analysis', 'skill_gap_analysis'),
+      ('Users can manage own career recommendations', 'career_recommendations'),
+      ('Users can manage own learning outcomes', 'learning_outcomes'),
+      ('Users can view own transactions', 'credit_transactions'),
+      ('Users can manage own feature unlocks', 'user_feature_usage'),
+      ('Users can manage own quiz progress', 'quiz_progress'),
+      ('Users can manage own tech bookmarks', 'tech_bookmarks'),
+      ('Users can manage own agent conversations', 'agent_conversations'),
+      ('Users can manage own agent messages', 'agent_messages')
+    ) AS policies(policy_name, table_name)
+  LOOP
+    BEGIN
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_record.policy_name, policy_record.table_name);
+    EXCEPTION
+      WHEN undefined_table THEN NULL;
+    END;
+  END LOOP;
+END $$;
+
 -- 1. PROFILES TABLE (Linked to auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -260,4 +294,61 @@ ALTER TABLE public.user_feature_usage ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage own feature unlocks"
   ON public.user_feature_usage FOR ALL
+  USING (auth.uid() = user_id);
+
+-- 12. QUIZ PROGRESS
+CREATE TABLE IF NOT EXISTS public.quiz_progress (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  quiz_id TEXT REFERENCES public.quizzes(id) ON DELETE CASCADE NOT NULL,
+  answers JSONB DEFAULT '{}'::jsonb NOT NULL,
+  current_index INTEGER DEFAULT 0 NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (user_id, quiz_id)
+);
+
+ALTER TABLE public.quiz_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own quiz progress"
+  ON public.quiz_progress FOR ALL
+  USING (auth.uid() = user_id);
+
+-- 13. TECHNOLOGY BOOKMARKS
+CREATE TABLE IF NOT EXISTS public.tech_bookmarks (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  article_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (user_id, article_id)
+);
+
+ALTER TABLE public.tech_bookmarks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own tech bookmarks"
+  ON public.tech_bookmarks FOR ALL
+  USING (auth.uid() = user_id);
+
+-- 14. AGENT CONVERSATIONS
+CREATE TABLE IF NOT EXISTS public.agent_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.agent_conversations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own agent conversations"
+  ON public.agent_conversations FOR ALL
+  USING (auth.uid() = user_id);
+
+-- 15. AGENT MESSAGES AND MEMORY
+CREATE TABLE IF NOT EXISTS public.agent_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES public.agent_conversations(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'tool', 'system')),
+  content JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.agent_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own agent messages"
+  ON public.agent_messages FOR ALL
   USING (auth.uid() = user_id);

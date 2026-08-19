@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { QuizAttempt, QuizData } from '../types';
-import { getLatestQuizAttempt } from '../services/supabase/database';
+import { getLatestQuizAttempt, getQuiz } from '../services/supabase/database';
 
 export const QuizResultsPage: React.FC = () => {
   const { profile } = useAuth();
@@ -31,27 +31,12 @@ export const QuizResultsPage: React.FC = () => {
 
   useEffect(() => {
     async function load() {
-      // Check session storage first
-      const storedAttempt = sessionStorage.getItem('careerpilot_latest_attempt');
-      const storedQuiz = sessionStorage.getItem('careerpilot_active_quiz');
-
-      if (storedQuiz) {
-        try {
-          setActiveQuiz(JSON.parse(storedQuiz));
-        } catch {}
-      }
-
-      if (storedAttempt) {
-        try {
-          setAttempt(JSON.parse(storedAttempt));
-          setLoading(false);
-          return;
-        } catch {}
-      }
-
       if (profile) {
         const latest = await getLatestQuizAttempt(profile.id);
         setAttempt(latest);
+        if (latest) {
+          setActiveQuiz(await getQuiz(profile.id, latest.quiz_id));
+        }
       }
       setLoading(false);
     }

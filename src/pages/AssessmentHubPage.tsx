@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getSkills, getLatestQuizAttempt } from '../services/supabase/database';
+import { getSkills, getLatestQuizAttempt, saveQuiz } from '../services/supabase/database';
 import { generate15QuestionQuiz } from '../services/ai/quizGenerator';
 import { SkillItem, QuizAttempt } from '../types';
 
@@ -79,10 +79,6 @@ export const AssessmentHubPage: React.FC = () => {
     setError(null);
 
     try {
-      // Clear any previous in-progress local quiz state
-      localStorage.removeItem('careerpilot_active_quiz_answers');
-      localStorage.removeItem('careerpilot_active_quiz_current_index');
-
       const targetSkills = assessmentMode === 'resume'
         ? skills.filter((s) => selectedSkillNames.includes(s.skill_name))
         : skills;
@@ -97,9 +93,8 @@ export const AssessmentHubPage: React.FC = () => {
         selectedSkillNames
       );
 
-      // Save generated active quiz to session
-      sessionStorage.setItem('careerpilot_active_quiz', JSON.stringify(quizData));
-      navigate(`/assessment/${quizData.id || 'active'}`);
+      const savedQuiz = await saveQuiz(profile.id, quizData);
+      navigate(`/assessment/${savedQuiz.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to generate assessment quiz.');
     } finally {
@@ -336,7 +331,6 @@ export const AssessmentHubPage: React.FC = () => {
           <div className="flex gap-3">
             <button
               onClick={() => {
-                sessionStorage.setItem('careerpilot_latest_attempt', JSON.stringify(latestAttempt));
                 navigate('/results');
               }}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 cursor-pointer"

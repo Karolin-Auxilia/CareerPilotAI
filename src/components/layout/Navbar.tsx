@@ -2,19 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Compass,
-  Coins,
-  Sparkles,
   User,
   LogOut,
   Bell,
   Menu,
   ChevronDown,
   ShieldCheck,
-  Database,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { isConfigured } from '../../services/supabase/client';
-import { SupabaseConnectionModal } from '../SupabaseConnectionModal';
 
 interface TopNavProps {
   onToggleSidebar?: () => void;
@@ -25,7 +20,6 @@ export const TopNav: React.FC<TopNavProps> = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [dbModalOpen, setDbModalOpen] = useState(false);
 
   const notifications = [
     { id: 1, text: 'Earn up to 5 credits by taking a skill assessment.', time: 'Today', unread: true },
@@ -59,53 +53,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onToggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-2.5 sm:gap-4">
-          {/* Supabase Database Connection Status Pill */}
-          <button
-            onClick={() => setDbModalOpen(true)}
-            className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-              isConfigured
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100/80'
-                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100/80'
-            }`}
-            title={isConfigured ? 'Supabase Database is Connected' : 'Supabase Connection Required'}
-          >
-            <Database className={`w-3.5 h-3.5 ${isConfigured ? 'text-emerald-600' : 'text-amber-600'}`} />
-            <span>{isConfigured ? 'Supabase Connected' : 'Connect Supabase'}</span>
-            <span
-              className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}
-            />
-          </button>
-
           {user && profile ? (
             <>
-              {/* Credit Balance Badge */}
-              <Link
-                to="/premium"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 hover:bg-amber-100/80 transition-colors text-amber-800 text-xs font-semibold shadow-2xs"
-                title="Your available credits. Click to earn or upgrade."
-              >
-                <Coins className="w-3.5 h-3.5 text-amber-600" />
-                <span>{profile.credits} Credits</span>
-              </Link>
-
-              {/* Plan Badge */}
-              <span
-                className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                  profile.plan === 'pro' || profile.plan === 'premium'
-                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                    : 'bg-slate-100 text-slate-700 border border-slate-200'
-                }`}
-              >
-                {profile.plan === 'pro' || profile.plan === 'premium' ? (
-                  <>
-                    <Sparkles className="w-3 h-3 text-purple-600" />
-                    <span>PRO</span>
-                  </>
-                ) : (
-                  <span>FREE</span>
-                )}
-              </span>
-
               {/* Notifications */}
               <div className="relative">
                 <button
@@ -171,16 +120,6 @@ export const TopNav: React.FC<TopNavProps> = ({ onToggleSidebar }) => {
                         <ShieldCheck className="w-4 h-4 text-amber-500" />
                         <span>Upgrade / Credits</span>
                       </Link>
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          setDbModalOpen(true);
-                        }}
-                        className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      >
-                        <Database className="w-4 h-4 text-emerald-500" />
-                        <span>Database Settings</span>
-                      </button>
                     </div>
 
                     <div className="border-t border-slate-100 pt-1">
@@ -219,10 +158,6 @@ export const TopNav: React.FC<TopNavProps> = ({ onToggleSidebar }) => {
         </div>
       </header>
 
-      <SupabaseConnectionModal
-        isOpen={dbModalOpen}
-        onClose={() => setDbModalOpen(false)}
-      />
     </>
   );
 };

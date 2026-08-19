@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -14,12 +15,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { QuizData, QuizQuestion, UserAnswer } from '../types';
 import { evaluateQuizSubmission } from '../services/ai/quizEvaluator';
-import { saveQuizAttempt, getSkills } from '../services/supabase/database';
+import { saveQuizAttempt, getQuiz, getQuizProgress, saveQuizProgress, clearQuizProgress, getSkills } from '../services/supabase/database';
 import { generate15QuestionQuiz } from '../services/ai/quizGenerator';
 
 export const QuizPage: React.FC = () => {
   const { profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const { quizId } = useParams<{ quizId: string }>();
 
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -31,31 +33,15 @@ export const QuizPage: React.FC = () => {
   // Initialize quiz from session or fallback
   useEffect(() => {
     async function init() {
-      const storedQuiz = sessionStorage.getItem('careerpilot_active_quiz');
-      if (storedQuiz) {
-        try {
-          const parsed = JSON.parse(storedQuiz);
-          setQuiz(parsed);
-
-          // Restore saved answers from localStorage if present
-          const savedAnswers = localStorage.getItem('careerpilot_active_quiz_answers');
-          if (savedAnswers) {
-            setAnswers(JSON.parse(savedAnswers));
+      if (profile && quizId) {
+        const storedQuiz = await getQuiz(profile.id, quizId);
+        if (storedQuiz) {
+          setQuiz(storedQuiz);
+          const progress = await getQuizProgress(profile.id, quizId);
+          if (progress) {
+            setAnswers(progress.answers);
+            setCurrentIndex(progress.currentIndex);
           }
-          const savedIndex = localStorage.getItem('careerpilot_active_quiz_current_index');
-          if (savedIndex) {
-            setCurrentIndex(Number(savedIndex));
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        // Generate new 15-question quiz on demand
-        if (profile) {
-          const skills = await getSkills(profile.id);
-          const generated = await generate15QuestionQuiz(skills);
-          setQuiz(generated);
-          sessionStorage.setItem('careerpilot_active_quiz', JSON.stringify(generated));
         }
       }
       setLoading(false);
@@ -66,19 +52,19 @@ export const QuizPage: React.FC = () => {
   const handleSelectOption = (option: string) => {
     const updated = { ...answers, [currentIndex]: option };
     setAnswers(updated);
-    localStorage.setItem('careerpilot_active_quiz_answers', JSON.stringify(updated));
+    if (profile && quizId) void saveQuizProgress(profile.id, quizId, updated, currentIndex);
   };
 
   const handleClearSelection = () => {
     const updated = { ...answers };
     delete updated[currentIndex];
     setAnswers(updated);
-    localStorage.setItem('careerpilot_active_quiz_answers', JSON.stringify(updated));
+    if (profile && quizId) void saveQuizProgress(profile.id, quizId, updated, currentIndex);
   };
 
   const goToIndex = (idx: number) => {
     setCurrentIndex(idx);
-    localStorage.setItem('careerpilot_active_quiz_current_index', String(idx));
+    if (profile && quizId) void saveQuizProgress(profile.id, quizId, answers, idx);
   };
 
   const answeredCount = Object.keys(answers).length;
@@ -102,18 +88,13 @@ export const QuizPage: React.FC = () => {
       // Evaluate attempt and calculate earned credits
       const attempt = await evaluateQuizSubmission(quiz, userAnswers, profile.id);
 
-      // Save to Supabase / Local storage
-      await saveQuizAttempt(profile.id, attempt);
+      // Preserve the saved quiz foreign key while the persistence layer normalizes the attempt ID.
+      await saveQuizAttempt(profile.id, { ...attempt, quiz_id: quiz.id });
 
       // Refresh profile to reflect newly credited balance
       await refreshProfile();
 
-      // Store in session for immediate results view
-      sessionStorage.setItem('careerpilot_latest_attempt', JSON.stringify(attempt));
-
-      // Clean up in-progress local state
-      localStorage.removeItem('careerpilot_active_quiz_answers');
-      localStorage.removeItem('careerpilot_active_quiz_current_index');
+      if (quizId) await clearQuizProgress(profile.id, quizId);
 
       navigate('/results');
     } catch (err) {

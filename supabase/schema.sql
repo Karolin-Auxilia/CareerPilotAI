@@ -279,3 +279,50 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 17. AGENT CONVERSATIONS
+CREATE TABLE IF NOT EXISTS public.agent_conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 18. AGENT MESSAGES AND MEMORY
+CREATE TABLE IF NOT EXISTS public.agent_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES public.agent_conversations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'tool', 'system')),
+    content JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.agent_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own agent conversations" ON public.agent_conversations FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own agent messages" ON public.agent_messages FOR ALL USING (auth.uid() = user_id);
+
+-- 15. QUIZ PROGRESS
+CREATE TABLE IF NOT EXISTS public.quiz_progress (
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    quiz_id UUID NOT NULL REFERENCES public.quizzes(id) ON DELETE CASCADE,
+    answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+    current_index INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (user_id, quiz_id)
+);
+
+-- 16. TECHNOLOGY BOOKMARKS
+CREATE TABLE IF NOT EXISTS public.tech_bookmarks (
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    article_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (user_id, article_id)
+);
+
+ALTER TABLE public.quiz_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tech_bookmarks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own quiz progress" ON public.quiz_progress FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own tech bookmarks" ON public.tech_bookmarks FOR ALL USING (auth.uid() = user_id);

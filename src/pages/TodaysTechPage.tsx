@@ -12,19 +12,15 @@ import {
 } from 'lucide-react';
 import { fetchDailyTechNews } from '../services/news/technologyNews';
 import { TechNewsArticle } from '../types';
+import { getTechBookmarks, setTechBookmark } from '../services/supabase/database';
+import { useAuth } from '../context/AuthContext';
 
 export const TodaysTechPage: React.FC = () => {
+  const { profile } = useAuth();
   const [articles, setArticles] = useState<TechNewsArticle[]>([]);
   const [category, setCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [bookmarks, setBookmarks] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('careerpilot_tech_bookmarks');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const categories = [
@@ -47,12 +43,22 @@ export const TodaysTechPage: React.FC = () => {
     load();
   }, [category, searchQuery]);
 
-  const toggleBookmark = (id: string) => {
+  useEffect(() => {
+    if (profile) getTechBookmarks(profile.id).then(setBookmarks).catch(console.error);
+  }, [profile]);
+
+  const toggleBookmark = async (id: string) => {
+    if (!profile) return;
     const updated = bookmarks.includes(id)
       ? bookmarks.filter((b) => b !== id)
       : [...bookmarks, id];
     setBookmarks(updated);
-    localStorage.setItem('careerpilot_tech_bookmarks', JSON.stringify(updated));
+    try {
+      await setTechBookmark(profile.id, id, updated.includes(id));
+    } catch (error) {
+      setBookmarks(bookmarks);
+      console.error('Bookmark persistence failed:', error);
+    }
   };
 
   return (
