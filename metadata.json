@@ -1,0 +1,6 @@
+{
+  "name": "CareerPilotAI",
+  "description": "Professional AI-powered career guidance platform with resume analysis, 15-question skill assessments, gap analysis, career path matching, and personalized learning roadmaps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
