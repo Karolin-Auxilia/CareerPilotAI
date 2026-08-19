@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+@theme {
+	/* Keep the existing utility classes while shifting the product palette to red. */
+	--color-indigo-50: #fff1f2;
+	--color-indigo-100: #ffe4e6;
+	--color-indigo-200: #fecdd3;
+	--color-indigo-300: #fda4af;
+	--color-indigo-400: #fb7185;
+	--color-indigo-500: #f43f5e;
+	--color-indigo-600: #dc2626;
+	--color-indigo-700: #b91c1c;
+	--color-indigo-800: #991b1b;
+	--color-indigo-900: #7f1d1d;
+	--color-indigo-950: #450a0a;
+
+	--color-blue-50: #fff1f2;
+	--color-blue-100: #ffe4e6;
+	--color-blue-200: #fecdd3;
+	--color-blue-300: #fda4af;
+	--color-blue-400: #fb7185;
+	--color-blue-500: #f43f5e;
+	--color-blue-600: #dc2626;
+	--color-blue-700: #b91c1c;
+	--color-blue-800: #991b1b;
+	--color-blue-900: #7f1d1d;
+
+	--color-purple-50: #fff1f2;
+	--color-purple-100: #ffe4e6;
+	--color-purple-200: #fecdd3;
+	--color-purple-300: #fda4af;
+	--color-purple-400: #fb7185;
+	--color-purple-500: #f43f5e;
+	--color-purple-600: #dc2626;
+	--color-purple-700: #b91c1c;
+	--color-purple-800: #991b1b;
+	--color-purple-900: #7f1d1d;
+	--color-purple-950: #450a0a;
+
+	--color-emerald-50: #fff1f2;
+	--color-emerald-100: #ffe4e6;
+	--color-emerald-200: #fecdd3;
+	--color-emerald-300: #fda4af;
+	--color-emerald-400: #fb7185;
+	--color-emerald-500: #f43f5e;
+	--color-emerald-600: #dc2626;
+	--color-emerald-700: #b91c1c;
+	--color-emerald-800: #991b1b;
+	--color-emerald-900: #7f1d1d;
+}
+
+@layer base {
+	body {
+		background-color: #fff;
+		color: #1f2937;
+	}
+}

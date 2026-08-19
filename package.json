@@ -4,9 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
+    "dev": "concurrently -k \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "vite --host 0.0.0.0",
+    "dev:backend": "python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "start": "python -m uvicorn backend.main:app --host 0.0.0.0 --port 3000",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist server.js"
   },
@@ -35,6 +37,7 @@
     "@types/node": "^22.14.0",
     "@types/react-router-dom": "^5.3.3",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^10.0.5",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
