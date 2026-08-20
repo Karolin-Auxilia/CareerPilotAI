@@ -16,6 +16,7 @@ import { QuizResultsPage } from './pages/QuizResultsPage';
 import { SkillGapPage } from './pages/SkillGapPage';
 import { CareerPathPage } from './pages/CareerPathPage';
 import { LearningOutcomesPage } from './pages/LearningOutcomesPage';
+import { SkillLearningPage } from './pages/SkillLearningPage';
 import { TodaysTechPage } from './pages/TodaysTechPage';
 import { PremiumPage } from './pages/PremiumPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -46,6 +47,7 @@ export function App() {
             <Route path="/skill-gap" element={<SkillGapPage />} />
             <Route path="/career-path" element={<CareerPathPage />} />
             <Route path="/learning" element={<LearningOutcomesPage />} />
+            <Route path="/learning/skill/:skillName" element={<SkillLearningPage />} />
             <Route path="/todays-tech" element={<TodaysTechPage />} />
             <Route path="/premium" element={<PremiumPage />} />
             <Route path="/profile" element={<ProfilePage />} />

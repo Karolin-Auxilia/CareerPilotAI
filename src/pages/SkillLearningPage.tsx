@@ -230,6 +230,7 @@ export const SkillLearningPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [skills, setSkills] = useState<SkillItem[]>([]);
   const [skillGap, setSkillGap] = useState<SkillGapSummary | null>(null);
+  const [hasSeededTutor, setHasSeededTutor] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -245,11 +246,22 @@ export const SkillLearningPage: React.FC = () => {
     if (!decodedSkill) return;
     setLessonLoading(true);
     setLessonError(null);
-    generateSkillLesson(decodedSkill, proficiency, profile?.target_career || 'Software Engineer')
+    generateSkillLesson(
+      decodedSkill,
+      proficiency,
+      profile?.target_career || 'Software Engineer',
+      {
+        profile: profile || {},
+        skills,
+        skillGap,
+        careers: [],
+        learningOutcomes: [],
+      }
+    )
       .then(setLesson)
       .catch((err: Error) => setLessonError(err.message))
       .finally(() => setLessonLoading(false));
-  }, [decodedSkill, proficiency, profile?.target_career]);
+  }, [decodedSkill, proficiency, profile, skills, skillGap]);
 
   // Load user context
   useEffect(() => {
@@ -272,32 +284,38 @@ export const SkillLearningPage: React.FC = () => {
 
   // Auto-seed first message when lesson loads
   useEffect(() => {
-    if (!lesson || messages.length > 0) return;
+    if (!lesson || !profile || hasSeededTutor) return;
+
     const seedMsg: CareerAgentMessage = {
       role: 'user',
       content: `Teach me ${decodedSkill} step by step. I am at ${proficiency} level.`,
     };
-    setMessages([seedMsg]);
-    setSending(true);
-    askLearningPlanAgent(seedMsg.content, {
-      profile: profile!,
-      skills,
-      skillGap,
-      careers: [],
-      learningOutcomes: [],
-    }, [])
-      .then((reply) => {
+
+    const generateSeedReply = async () => {
+      setSending(true);
+      try {
+        const reply = await askLearningPlanAgent(seedMsg.content, {
+          profile,
+          skills,
+          skillGap,
+          careers: [],
+          learningOutcomes: [],
+        }, []);
         setMessages([seedMsg, { role: 'assistant', content: reply }]);
-      })
-      .catch(() => {
+      } catch {
         setMessages([seedMsg, {
           role: 'assistant',
-          content: `Let's start learning **${decodedSkill}**! Check the lesson panel on the left for structured content, code examples, and resource links. Feel free to ask me anything!`,
+          content: `Let's start learning **${decodedSkill}**. I’ll explain the key idea, show a practical example, and then give you a small challenge to practice.`,
         }]);
-      })
-      .finally(() => setSending(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson]);
+      } finally {
+        setSending(false);
+        setHasSeededTutor(true);
+      }
+    };
+
+    setMessages([seedMsg]);
+    void generateSeedReply();
+  }, [lesson, profile, hasSeededTutor, decodedSkill, proficiency, skills, skillGap]);
 
   // Auto scroll chat
   useEffect(() => {
@@ -330,10 +348,27 @@ export const SkillLearningPage: React.FC = () => {
     }
   }, [input, sending, profile, messages, skills, skillGap]);
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [decodedSkill]);
+
   const reloadLesson = () => {
     setLessonLoading(true);
     setLessonError(null);
-    generateSkillLesson(decodedSkill, proficiency, profile?.target_career || 'Software Engineer')
+    generateSkillLesson(
+      decodedSkill,
+      proficiency,
+      profile?.target_career || 'Software Engineer',
+      {
+        profile: profile || {},
+        skills,
+        skillGap,
+        careers: [],
+        learningOutcomes: [],
+      }
+    )
       .then(setLesson)
       .catch((err: Error) => setLessonError(err.message))
       .finally(() => setLessonLoading(false));

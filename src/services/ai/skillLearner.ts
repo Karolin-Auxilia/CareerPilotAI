@@ -20,15 +20,33 @@ export interface SkillLesson {
   error?: string;
 }
 
+export interface SkillLessonContext {
+  profile?: Record<string, any> | null;
+  skills?: Array<Record<string, any>>;
+  skillGap?: Record<string, any> | null;
+  careers?: Array<Record<string, any>>;
+  learningOutcomes?: Array<Record<string, any>>;
+}
+
 export async function generateSkillLesson(
   skill: string,
   proficiency: string = 'Beginner',
-  targetCareer: string = 'Software Engineer'
+  targetCareer: string = 'Software Engineer',
+  context: SkillLessonContext = {}
 ): Promise<SkillLesson> {
   const response = await fetch('/api/ai/learn-skill', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skill, proficiency, targetCareer }),
+    body: JSON.stringify({
+      skill,
+      proficiency,
+      targetCareer,
+      profile: context.profile || {},
+      skills: context.skills || [],
+      skillGap: context.skillGap || null,
+      careers: context.careers || [],
+      learningOutcomes: context.learningOutcomes || [],
+    }),
   });
 
   const data = await response.json();

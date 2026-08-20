@@ -136,14 +136,28 @@ export async function getCareerRecommendations(userId: string): Promise<CareerRe
   return result.data || [];
 }
 
+function sanitizeSavedLearningOutcomes(items: Omit<LearningOutcome, 'id' | 'user_id' | 'created_at'>[]): Omit<LearningOutcome, 'id' | 'user_id' | 'created_at'>[] {
+  const blockedPatterns = ['master modern javascript', 'javascript (es6+)', 'modern javascript', 'full stack developer'];
+  return items.filter((item) => {
+    const objective = (item.objective || '').trim().toLowerCase();
+    const normalized = objective.replace(/[^a-z0-9\s+]/g, ' ').replace(/\s+/g, ' ').trim();
+    return !blockedPatterns.some((pattern) => normalized.includes(pattern));
+  });
+}
+
 export async function saveLearningOutcomes(userId: string, outcomes: Omit<LearningOutcome, 'id' | 'user_id' | 'created_at'>[]): Promise<LearningOutcome[]> {
-  return replaceRows('learning_outcomes', userId, outcomes.map((outcome) => ({ ...outcome, id: newId(), user_id: userId, created_at: new Date().toISOString() })));
+  const cleaned = sanitizeSavedLearningOutcomes(outcomes);
+  return replaceRows('learning_outcomes', userId, cleaned.map((outcome) => ({ ...outcome, id: newId(), user_id: userId, created_at: new Date().toISOString() })));
 }
 
 export async function getLearningOutcomes(userId: string): Promise<LearningOutcome[]> {
   const result = await db().from('learning_outcomes').select('*').eq('user_id', userId);
   if (result.error) throw result.error;
-  return result.data || [];
+  return (result.data || []).filter((item) => {
+    const objective = (item.objective || '').trim().toLowerCase();
+    const normalized = objective.replace(/[^a-z0-9\s+]/g, ' ').replace(/\s+/g, ' ').trim();
+    return !['master modern javascript', 'javascript (es6+)', 'modern javascript', 'full stack developer'].some((pattern) => normalized.includes(pattern));
+  });
 }
 
 export async function toggleLearningOutcome(userId: string, outcomeId: string, isCompleted: boolean): Promise<boolean> {
