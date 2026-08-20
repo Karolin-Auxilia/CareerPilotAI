@@ -266,11 +266,21 @@ Resume context: {str(payload.get('resumeText', ''))[:1500]}"""
 @app.post("/api/ai/learning-outcomes")
 def learning_outcomes(payload: dict[str, Any]) -> dict[str, Any]:
     career = payload.get("targetCareerName") or (payload.get("career") or {}).get("career_name") or "Software Engineer"
-    prompt = f"""Generate 5 measurable learning outcomes for the role {career}, based on these actual gaps and skills.
-Return pure JSON {{\"outcomes\": [...]}}. Each outcome needs id, career_name, objective, topics, expected_skill_level,
-practical_task, project_idea, and expected_outcome.
-Gaps: {json.dumps(payload.get('gaps', []))}
-Skills: {json.dumps(payload.get('skills', []))}"""
+    prompt = f"""Generate 5 measurable learning outcomes for the role {career}.
+
+CRITICAL: The learning outcome objectives MUST be derived from the candidate's resume skills.
+Each objective should focus on enhancing, deepening, or applying the skills already present in their resume.
+
+Candidate Resume Skills (SOURCE OF ALL OBJECTIVES): {json.dumps(payload.get('skills', []))}
+Diagnosed Skill Gaps (for prioritization): {json.dumps(payload.get('gaps', []))}
+
+Rules:
+- Every objective MUST directly reference a skill from the resume
+- If gaps exist, prioritize learning outcomes that address those gaps using resume skills as foundation
+- Include 4-5 topics, expected skill level, practical task, project idea, and expected outcome
+
+Return pure JSON {{"outcomes": [...]}}. Each outcome needs id, career_name, objective, topics, expected_skill_level,
+practical_task, project_idea, and expected_outcome."""
     try:
         return generate_json(prompt, 0.3)
     except Exception:

@@ -25,14 +25,46 @@ export async function generateLearningOutcomes(params: GenerateLearningOutcomesP
     console.warn('Backend learning outcome generation fallback:', err);
   }
 
-  // Fallback Measurable Outcome Generator targeting candidate's diagnosed skill gaps
+  // Fallback Measurable Outcome Generator using resume skills as source
   return fallbackLearningOutcomeGenerator(
     params.gaps,
-    params.targetCareerName || params.career?.career_name || 'Software Engineering Pathway'
+    params.targetCareerName || params.career?.career_name || 'Software Engineering Pathway',
+    params.skills
   );
 }
 
-function fallbackLearningOutcomeGenerator(gaps: SkillGapItem[], careerName: string): LearningOutcome[] {
+function fallbackLearningOutcomeGenerator(gaps: SkillGapItem[], careerName: string, skills?: SkillItem[]): LearningOutcome[] {
+  // Use resume skills as the source for learning outcomes
+  const resumeSkills = skills || [];
+  
+  if (resumeSkills.length > 0) {
+    // Generate learning outcomes from resume skills
+    return resumeSkills.slice(0, 5).map((skill, idx) => {
+      const relatedGap = gaps.find(g => g.skill_name.toLowerCase() === skill.skill_name.toLowerCase());
+      const currentLevel = relatedGap?.current_level || skill.proficiency || 'Intermediate';
+      const targetLevel = relatedGap?.target_level || 'Advanced';
+      
+      return {
+        id: `lo_skill_${idx + 1}_${Date.now()}`,
+        career_name: careerName,
+        objective: `By the end of this module, you will be able to apply advanced ${skill.skill_name} techniques to build production-grade applications, elevating your proficiency from ${currentLevel} to ${targetLevel}.`,
+        topics: [
+          `Advanced ${skill.skill_name} Patterns & Best Practices`,
+          `Real-World ${skill.skill_name} Implementation Scenarios`,
+          `Performance Optimization in ${skill.skill_name}`,
+          `Testing & Quality Assurance for ${skill.skill_name}`,
+          `Integration with Modern Development Workflows`,
+        ],
+        expected_skill_level: targetLevel,
+        practical_task: `Build a complete feature using ${skill.skill_name} that demonstrates mastery of core concepts and best practices.`,
+        project_idea: `Production-Ready ${skill.skill_name} Application with Comprehensive Testing`,
+        expected_outcome: `Demonstrated ability to architect and implement robust solutions using ${skill.skill_name} with measurable performance improvements.`,
+        is_completed: false,
+      };
+    });
+  }
+  
+  // Fallback to gaps if no skills available
   if (!gaps || gaps.length === 0) {
     return [
       {

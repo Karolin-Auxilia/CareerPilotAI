@@ -200,13 +200,7 @@ export const QuizResultsPage: React.FC = () => {
 
       {/* Question by Question Review */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Question-by-Question Review</h3>
-            <p className="text-xs text-slate-500">Examine correct answers and comprehensive technical explanations</p>
-          </div>
-          <span className="text-xs font-semibold text-slate-500">15 Questions Total</span>
-        </div>
+        
 
         <div className="space-y-3">
           {attempt.answers.map((ans, idx) => {

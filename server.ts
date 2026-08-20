@@ -500,17 +500,21 @@ Return pure JSON:
     try {
       const careerTitle = targetCareerName || career?.career_name || 'Software Engineer';
       const prompt = `You are CareerPilotAI's Curriculum & Learning Outcome Architect.
-Generate 5 personalized, highly measurable learning outcomes specifically designed to eliminate the candidate's diagnosed skill gaps for the role "${careerTitle}".
+Generate 5 personalized, highly measurable learning outcomes for the role "${careerTitle}".
 
-CRITICAL REQUIREMENT - NO DUMMY OR GENERIC OUTCOMES:
-Every outcome objective MUST directly target the candidate's actual diagnosed skill gaps and tech stack.
-Diagnosed Skill Gaps: ${JSON.stringify(gaps || [])}
-Candidate Resume Skills: ${JSON.stringify(skills || [])}
+CRITICAL REQUIREMENT - OBJECTIVES MUST COME FROM RESUME SKILLS:
+The learning outcome objectives MUST be derived from the candidate's actual resume skills.
+Each objective should focus on enhancing, deepening, or applying the skills already present in their resume.
+If there are skill gaps, use them to prioritize which resume skills to focus on first.
+
+Candidate Resume Skills (SOURCE OF ALL OBJECTIVES): ${JSON.stringify(skills || [])}
+Diagnosed Skill Gaps (for prioritization): ${JSON.stringify(gaps || [])}
 
 RULES:
-- Every learning outcome objective MUST be measurable (e.g., "By the end of this module, you will be able to build and deploy...").
+- Every learning outcome objective MUST be measurable and directly reference a skill from the resume (e.g., "By the end of this module, you will be able to build and deploy a REST API using Python and Flask from your resume skills...").
 - Include 4-5 topics, expected skill level, practical task, project idea, and tangible expected outcome.
-- Ensure tasks and project ideas relate directly to the candidate's diagnosed skill gaps.
+- Ensure tasks and project ideas directly use the candidate's resume skills.
+- If gaps exist, prioritize learning outcomes that address those gaps using the resume skills as foundation.
 
 Return pure JSON:
 {
@@ -518,11 +522,11 @@ Return pure JSON:
     {
       "id": "lo_1",
       "career_name": "${careerTitle}",
-      "objective": "By the end of this module, you will be able to...",
+      "objective": "By the end of this module, you will be able to [enhance/apply/master] [specific resume skill]...",
       "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
       "expected_skill_level": "Intermediate",
-      "practical_task": "Concrete task description",
-      "project_idea": "Real-world project title and deliverable",
+      "practical_task": "Concrete task using [resume skill]",
+      "project_idea": "Real-world project using [resume skills]",
       "expected_outcome": "Measurable verifiable success criteria"
     }
   ]
