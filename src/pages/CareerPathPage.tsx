@@ -5,7 +5,6 @@ import {
   Sparkles,
   CheckCircle2,
   XCircle,
-  Clock,
   Briefcase,
   Layers,
   ArrowRight,
@@ -218,78 +217,6 @@ export const CareerPathPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-Phase Interactive Transition Roadmap */}
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-slate-900">
-                Actionable Roadmap for {activeCareer.career_name}
-              </h3>
-              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                Step-by-step Milestones
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {activeCareer.roadmap?.map((phase, pIdx) => (
-                <div
-                  key={`phase-${activeCareer.id || activeCareer.career_name}-${phase.phase || pIdx}`}
-                  className="p-5 rounded-xl border border-slate-200/90 bg-white hover:border-emerald-300 transition-all shadow-2xs"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                        P{phase.phase || pIdx + 1}
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-900">{phase.title}</h4>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {phase.duration}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          phase.difficulty === 'Beginner'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : phase.difficulty === 'Intermediate'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {phase.difficulty}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-                    <strong>Expected Outcome:</strong> {phase.expected_outcome}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-xs">
-                    <div>
-                      <span className="text-slate-400 font-medium block mb-1">Topics & Mechanisms</span>
-                      <div className="flex flex-wrap gap-1">
-                        {phase.topics?.map((t, ti) => (
-                          <span key={`topic-${pIdx}-${ti}-${t}`} className="px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-700 text-[10px]">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-medium block mb-1">Suggested Project Work</span>
-                      <ul className="list-disc list-inside text-slate-700 text-[11px] space-y-0.5">
-                        {phase.suggested_projects?.map((proj, pi) => (
-                          <li key={`proj-${pIdx}-${pi}`} className="line-clamp-1">{proj}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 

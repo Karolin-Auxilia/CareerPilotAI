@@ -3,6 +3,7 @@ from .career_recommendation_agent import run as run_career_recommendation_agent
 from .learning_plan_agent import run as run_learning_plan_agent
 from .profile_agent import run as run_profile_agent
 from .skill_gap_agent import run as run_skill_gap_agent
+from .technology_news_agent import run as run_technology_news_agent
 
 __all__ = [
 	"run_career_recommendation_agent",
@@ -10,4 +11,5 @@ __all__ = [
 	"run_learning_plan_agent",
 	"run_profile_agent",
 	"run_skill_gap_agent",
+	"run_technology_news_agent",
 ]

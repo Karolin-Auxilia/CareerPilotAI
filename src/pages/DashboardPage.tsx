@@ -68,7 +68,9 @@ export const DashboardPage: React.FC = () => {
   const skillCount = skills.length;
   const latestScore = latestAttempt ? `${latestAttempt.percentage}%` : 'Not Taken';
   const primaryCareer = careers[0];
-  const careerReadiness = latestAttempt ? Math.min(94, Math.max(45, Math.round(latestAttempt.percentage * 0.9 + 10))) : 65;
+  const careerReadiness = latestAttempt
+    ? Math.min(94, Math.max(45, Math.round(latestAttempt.percentage * 0.9 + 10)))
+    : null;
 
   let gapSeverity = 'Moderate';
   if (skillGaps.length === 0) gapSeverity = 'Pending Assessment';
@@ -189,7 +191,9 @@ export const DashboardPage: React.FC = () => {
             <span className="text-xs font-semibold">Career Readiness</span>
             <Route className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{careerReadiness}%</div>
+          <div className="text-2xl font-black text-slate-900">
+            {careerReadiness === null ? 'Not Assessed' : `${careerReadiness}%`}
+          </div>
           <Link to="/career-path" className="text-[11px] font-semibold text-emerald-600 hover:underline mt-1 inline-block">
             Explore paths →
           </Link>

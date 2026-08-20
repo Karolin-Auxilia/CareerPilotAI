@@ -91,36 +91,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* Database Connection Card */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className={`p-3 rounded-2xl ${isConfigured ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span>Supabase PostgreSQL Database</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                  {isConfigured ? 'CONNECTED' : 'DISCONNECTED'}
-                </span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {isConfigured
-                  ? `Active connection: ${supabaseConfig.url}`
-                  : 'Connect your Supabase instance to store user accounts, skills, quizzes, and outcomes.'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowDbModal(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition-colors cursor-pointer shrink-0"
-          >
-            {isConfigured ? 'Manage Connection' : 'Connect Supabase'}
-          </button>
-        </div>
-      </div>
+      
 
       {/* Profile Form */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-2xs">

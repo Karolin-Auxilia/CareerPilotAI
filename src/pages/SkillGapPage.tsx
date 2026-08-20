@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getSkills, getLatestQuizAttempt, getSkillGaps, saveSkillGaps } from '../services/supabase/database';
+import { getSkills, getLatestQuizAttempt, saveSkillGaps } from '../services/supabase/database';
 import { analyzeSkillGaps } from '../services/ai/skillGapAnalyzer';
 import { SkillGapAnalysis, SkillItem, QuizAttempt } from '../types';
 import { PremiumFeatureGuard } from '../components/common/PremiumFeatureGuard';
@@ -26,6 +26,7 @@ export const SkillGapPage: React.FC = () => {
   const { profile } = useAuth();
   const [skills, setSkills] = useState<SkillItem[]>([]);
   const [analysis, setAnalysis] = useState<SkillGapAnalysis | null>(null);
+  const [latestAttempt, setLatestAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
@@ -33,42 +34,27 @@ export const SkillGapPage: React.FC = () => {
     async function init() {
       if (!profile) return;
       try {
-        const [sk, attempt, existingGaps] = await Promise.all([
+        const [sk, attempt] = await Promise.all([
           getSkills(profile.id),
           getLatestQuizAttempt(profile.id),
-          getSkillGaps(profile.id),
         ]);
 
         setSkills(sk);
+        setLatestAttempt(attempt);
 
         if (sk.length === 0) {
           setLoading(false);
           return;
         }
 
-        if (existingGaps && existingGaps.length > 0) {
-          const calculatedScore = Math.max(40, Math.min(98, Math.round(100 - existingGaps.length * 6)));
-          setAnalysis({
-            overall_score: calculatedScore,
-            gap_level: existingGaps.some(g => g.gap_level === 'High' || g.gap_level === 'Critical') ? 'High' : 'Moderate',
-            strong_skills: sk.filter(s => s.proficiency === 'Advanced' || s.proficiency === 'Expert').map(s => s.skill_name),
-            moderate_skills: sk.filter(s => s.proficiency === 'Intermediate').map(s => s.skill_name),
-            weak_skills: sk.filter(s => s.proficiency === 'Beginner').map(s => s.skill_name),
-            missing_skills: [],
-            gaps: existingGaps,
-          });
-        } else {
-          // Generate fresh diagnostic analysis from the candidate's actual resume skills
-          const fresh = await analyzeSkillGaps({
-            skills: sk,
-            attempt,
-            targetCareer: profile.target_career || 'Software Engineer',
-          });
-          setAnalysis(fresh);
-          if (fresh.gaps && fresh.gaps.length > 0) {
-            await saveSkillGaps(profile.id, fresh.gaps);
-          }
-        }
+        // Recalculate on every visit so a new assessment never uses stale gap rows.
+        const fresh = await analyzeSkillGaps({
+          skills: sk,
+          attempt,
+          targetCareer: profile.target_career || 'Software Engineer',
+        });
+        setAnalysis(fresh);
+        await saveSkillGaps(profile.id, fresh.gaps || []);
       } catch (e) {
         console.error('SkillGapPage init error:', e);
       } finally {
@@ -83,15 +69,14 @@ export const SkillGapPage: React.FC = () => {
     setRefreshing(true);
     try {
       const attempt = await getLatestQuizAttempt(profile.id);
+      setLatestAttempt(attempt);
       const fresh = await analyzeSkillGaps({
         skills,
         attempt,
         targetCareer: profile.target_career || 'Software Engineer',
       });
       setAnalysis(fresh);
-      if (fresh.gaps && fresh.gaps.length > 0) {
-        await saveSkillGaps(profile.id, fresh.gaps);
-      }
+      await saveSkillGaps(profile.id, fresh.gaps || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -172,7 +157,7 @@ export const SkillGapPage: React.FC = () => {
             <span className="text-sm font-bold text-slate-400">/ 100</span>
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            Based on {skills.length} validated skills from your uploaded resume.
+            Based on {skills.length} database skills and {latestAttempt ? `your latest assessment score of ${latestAttempt.percentage}%` : 'your current skill evidence'}.
           </p>
         </div>
 
@@ -259,6 +244,33 @@ export const SkillGapPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Next topics are ordered from the current assessment-derived gaps. */}
+      {analysis && (analysis.gaps.length > 0 || analysis.missing_skills.length > 0) && (
+        <div className="bg-emerald-50/50 rounded-2xl p-6 sm:p-8 border border-emerald-200 shadow-xs">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <h2 className="text-lg font-bold text-slate-900">Next Topics to Learn</h2>
+            <span className="text-xs font-bold text-emerald-700">Target: Expert proficiency</span>
+          </div>
+          <p className="text-xs text-slate-600 mb-5">
+            Start with the highest-priority weaknesses from your latest assessment, then work through the remaining topics.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ...analysis.gaps.map((gap) => gap.skill_name),
+              ...analysis.missing_skills,
+            ].filter((skill, index, list) => list.indexOf(skill) === index).slice(0, 8).map((skill) => (
+              <Link
+                key={skill}
+                to={`/learning/skill/${encodeURIComponent(skill)}`}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-100 transition-colors"
+              >
+                Learn {skill} <ArrowRight className="inline w-3 h-3 ml-1" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

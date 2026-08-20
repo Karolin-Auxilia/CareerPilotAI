@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from google import genai
 from google.genai import types
+from backend.agents.technology_news_agent import run as run_technology_news_agent
 
 load_dotenv()
 
@@ -230,10 +231,13 @@ Assessment focus: {payload.get('topicFocus', '')}"""
 
 @app.post("/api/ai/skill-gap-analysis")
 def skill_gap_analysis(payload: dict[str, Any]) -> dict[str, Any]:
-    prompt = f"""Analyze the candidate's actual skills and assessment for a target career.
+    prompt = f"""Analyze the candidate's actual skills and latest assessment for a target career.
 Return pure JSON with overall_score (0-100), gap_level, strong_skills, moderate_skills, weak_skills,
 missing_skills, and 4-6 detailed gaps containing skill_name, current_level, target_level, gap_level,
 priority, reason, and recommendation.
+Use the per-skill assessment breakdown whenever it is present. Treat scores below 80% as requiring
+learning, scores below 60% as high-priority, and set target_level to Expert for skills that need mastery.
+Recommend the next topics in prerequisite order, and make every recommendation measurable and practical.
 Skills: {json.dumps(payload.get('skills', []))}
 Assessment: {json.dumps(payload.get('attempt', {}))}
 Target career: {payload.get('targetCareer', 'Software Engineer')}
@@ -588,6 +592,12 @@ def news(category: str | None = Query(default=None), q: str | None = Query(defau
     if q:
         query = q.lower()
         articles = [article for article in articles if query in article["title"].lower() or query in article["summary"].lower() or any(query in tag.lower() for tag in article.get("tags", []))]
+
+    try:
+        articles = run_technology_news_agent(generate_json, articles, category, q)
+    except Exception as exc:
+        # The source feed remains available when AI is not configured or unavailable.
+        print(f"TechnologyNewsAgent unavailable: {exc}")
     return {"articles": articles}
 
 

@@ -70,48 +70,14 @@ export const RegisterPage: React.FC = () => {
         <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
           Create your account
         </h2>
-        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 py-1 px-3 rounded-full border border-emerald-200/80 max-w-xs mx-auto">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span>Stores directly in your Supabase database</span>
-        </div>
+        
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-sm border border-slate-200/80 rounded-2xl sm:px-10">
-          {/* Database Connection Pill */}
-          <div className="mb-6 p-3 rounded-xl border flex items-center justify-between text-xs transition-colors bg-slate-50 border-slate-200">
-            <div className="flex items-center gap-2">
-              <Database className={`w-4 h-4 ${isConfigured ? 'text-emerald-600' : 'text-amber-600'}`} />
-              <span className="font-semibold text-slate-800">
-                {isConfigured ? 'Supabase Connected' : 'Supabase Required'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowConfigModal(true)}
-              className="font-bold text-[11px] text-emerald-600 hover:text-emerald-700 underline cursor-pointer"
-            >
-              {isConfigured ? 'Manage' : 'Connect Now'}
-            </button>
-          </div>
+          
 
-          {error && (
-            <div className="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div>
-                <span>{error}</span>
-                {!isConfigured && (
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(true)}
-                    className="block mt-1 font-bold text-emerald-700 underline"
-                  >
-                    Click here to enter Supabase URL & Anon Key
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>

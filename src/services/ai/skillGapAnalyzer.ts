@@ -50,10 +50,23 @@ function fallbackSkillGapAnalyzer(skills: SkillItem[], attempt?: QuizAttempt | n
 
   const skillPerformance = attempt?.skill_breakdown || {};
 
+  const getAssessmentPercentage = (skillName: string): number | null => {
+    const entry = Object.entries(skillPerformance).find(([name]) => name.toLowerCase() === skillName.toLowerCase())?.[1];
+    if (typeof entry === 'number') return entry <= 1 ? Math.round(entry * 100) : Math.round(entry);
+    if (!entry || typeof entry !== 'object') return null;
+
+    const stats = entry as { percentage?: number; correct?: number; total?: number };
+    if (typeof stats.percentage === 'number') return Math.round(stats.percentage);
+    if (typeof stats.correct === 'number' && typeof stats.total === 'number' && stats.total > 0) {
+      return Math.round((stats.correct / stats.total) * 100);
+    }
+    return null;
+  };
+
   // Evaluate each of the candidate's actual extracted skills
   skills.forEach((skill) => {
     const sName = skill.skill_name;
-    const scorePct = skillPerformance[sName] ?? (skill.proficiency === 'Advanced' || skill.proficiency === 'Expert' ? 85 : skill.proficiency === 'Intermediate' ? 70 : 50);
+    const scorePct = getAssessmentPercentage(sName) ?? (skill.proficiency === 'Expert' ? 95 : skill.proficiency === 'Advanced' ? 85 : skill.proficiency === 'Intermediate' ? 70 : 50);
 
     if (scorePct >= 80) {
       strong_skills.push(sName);
@@ -63,7 +76,7 @@ function fallbackSkillGapAnalyzer(skills: SkillItem[], attempt?: QuizAttempt | n
         id: 'gap_' + Math.random().toString(36).substr(2, 9),
         skill_name: sName,
         current_level: skill.proficiency || 'Intermediate',
-        target_level: 'Advanced',
+        target_level: 'Expert',
         gap_level: 'Moderate',
         priority: 'Medium',
         reason: `Assessment performance indicates solid foundational grasp in ${sName} (${scorePct}%), but advanced production patterns, concurrency, or optimization need improvement.`,
@@ -75,7 +88,7 @@ function fallbackSkillGapAnalyzer(skills: SkillItem[], attempt?: QuizAttempt | n
         id: 'gap_' + Math.random().toString(36).substr(2, 9),
         skill_name: sName,
         current_level: skill.proficiency === 'Advanced' ? 'Intermediate' : (skill.proficiency || 'Beginner'),
-        target_level: 'Intermediate',
+        target_level: 'Expert',
         gap_level: 'High',
         priority: 'High',
         reason: `Identified proficiency gaps in ${sName} (${scorePct}%). Evidence indicates core mechanisms require structured reinforcement.`,

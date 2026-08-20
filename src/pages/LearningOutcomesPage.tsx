@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getSkills, getSkillGaps, getLearningOutcomes, saveLearningOutcomes, toggleLearningOutcomeCompletion } from '../services/supabase/database';
+import { getSkills, getSkillGaps, getLatestQuizAttempt, getLearningOutcomes, saveLearningOutcomes, toggleLearningOutcomeCompletion } from '../services/supabase/database';
 import { generateLearningOutcomes } from '../services/ai/learningOutcomeGenerator';
 import { LearningOutcome, SkillGapItem, SkillItem } from '../types';
 
@@ -31,9 +31,10 @@ export const LearningOutcomesPage: React.FC = () => {
     async function init() {
       if (!profile) return;
       try {
-        const [sk, storedGaps, storedOutcomes] = await Promise.all([
+        const [sk, storedGaps, latestAttempt, storedOutcomes] = await Promise.all([
           getSkills(profile.id),
           getSkillGaps(profile.id),
+          getLatestQuizAttempt(profile.id),
           getLearningOutcomes(profile.id),
         ]);
 
@@ -44,7 +45,14 @@ export const LearningOutcomesPage: React.FC = () => {
           return;
         }
 
-        if (storedOutcomes && storedOutcomes.length > 0) {
+        const latestOutcomeDate = storedOutcomes.reduce((latest, outcome) => {
+          const timestamp = outcome.created_at ? Date.parse(outcome.created_at) : 0;
+          return Math.max(latest, timestamp);
+        }, 0);
+        const latestAssessmentDate = latestAttempt?.completed_at ? Date.parse(latestAttempt.completed_at) : 0;
+        const needsAssessmentRefresh = latestAssessmentDate > latestOutcomeDate;
+
+        if (storedOutcomes && storedOutcomes.length > 0 && !needsAssessmentRefresh) {
           setOutcomes(sanitizeLearningOutcomes(storedOutcomes));
         } else {
           const fresh = await generateLearningOutcomes({
