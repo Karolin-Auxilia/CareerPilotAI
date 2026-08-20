@@ -14,6 +14,7 @@ import {
   BookOpen,
   FileText,
   RefreshCw,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getSkills, getSkillGaps, getLearningOutcomes, saveLearningOutcomes, toggleLearningOutcomeCompletion } from '../services/supabase/database';
@@ -26,6 +27,11 @@ export const LearningOutcomesPage: React.FC = () => {
   const [outcomes, setOutcomes] = useState<LearningOutcome[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    { role: 'assistant', content: 'Hi, I am your adaptive learning coach. What are you working on today?' },
+  ]);
 
   useEffect(() => {
     async function init() {
@@ -91,6 +97,36 @@ export const LearningOutcomesPage: React.FC = () => {
   };
 
   const completedCount = outcomes.filter((o) => o.is_completed).length;
+
+  const sendChatMessage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const message = chatInput.trim();
+    if (!message || chatLoading || !profile) return;
+    const nextMessages = [...chatMessages, { role: 'user' as const, content: message }];
+    setChatMessages(nextMessages);
+    setChatInput('');
+    setChatLoading(true);
+    try {
+      const response = await fetch('/api/ai/learning-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          history: chatMessages,
+          targetCareer: profile.target_career || 'Software Engineer',
+          skills,
+          outcomes,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Unable to reach the learning coach');
+      setChatMessages([...nextMessages, { role: 'assistant', content: data.reply }]);
+    } catch (error) {
+      setChatMessages([...nextMessages, { role: 'assistant', content: error instanceof Error ? error.message : 'Unable to reach the learning coach.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -165,6 +201,32 @@ export const LearningOutcomesPage: React.FC = () => {
           />
         </div>
       </div>
+
+      <section className="bg-slate-950 rounded-2xl p-5 sm:p-6 text-white shadow-2xs">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-300"><GraduationCap className="w-5 h-5" /></div>
+          <div>
+            <h2 className="font-bold">Learning Coach</h2>
+            <p className="text-xs text-slate-400">Ask about your next step, a difficult topic, or a project.</p>
+          </div>
+        </div>
+        <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-1">
+          {chatMessages.map((chat, index) => (
+            <div key={`${chat.role}-${index}`} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <p className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${chat.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
+                {chat.content}
+              </p>
+            </div>
+          ))}
+          {chatLoading && <p className="text-xs text-slate-400">Thinking...</p>}
+        </div>
+        <form onSubmit={sendChatMessage} className="flex gap-2">
+          <input value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Ask your learning coach..." className="min-w-0 flex-1 rounded-xl bg-slate-900 border border-slate-700 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-emerald-500" />
+          <button type="submit" disabled={chatLoading || !chatInput.trim()} aria-label="Send message" className="rounded-xl bg-emerald-600 px-4 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
+      </section>
 
       {/* Outcomes Cards List */}
       <div className="space-y-6">

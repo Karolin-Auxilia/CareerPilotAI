@@ -1,7 +1,6 @@
 import base64
 import json
 import os
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -10,8 +9,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from google import genai
-from google.genai import types
+
+from backend.orchestration.career_pipeline import CareerPipeline, CareerPipelineError
+from backend.agents.learning_agent import LearningAgent
+from backend.services.gemini_service import generate_json, generate_text, get_ai_client
 
 load_dotenv()
 
@@ -23,50 +24,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-_client: genai.Client | None = None
-
-
-def get_ai_client() -> genai.Client | None:
-    global _client
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("AI_API_KEY")
-    if not api_key:
-        return None
-    if _client is None:
-        _client = genai.Client(api_key=api_key)
-    return _client
-
-
-def parse_json_response(text: str) -> dict[str, Any]:
-    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.IGNORECASE)
-    parsed = json.loads(cleaned)
-    if not isinstance(parsed, dict):
-        raise ValueError("Gemini response was not a JSON object")
-    return parsed
-
-
-def generate_json(prompt: str, temperature: float = 0.3) -> dict[str, Any]:
-    client = get_ai_client()
-    if client is None:
-        raise RuntimeError("AI key not configured")
-
-    models = ["gemini-3.7-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"]
-    last_error: Exception | None = None
-    for model in models:
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=temperature,
-                ),
-            )
-            return parse_json_response(response.text or "{}")
-        except Exception as error:
-            last_error = error
-    raise last_error or RuntimeError("All AI models unavailable")
-
 
 def extract_resume_skills(text: str) -> dict[str, Any]:
     if not text.strip():
@@ -121,6 +78,20 @@ def health() -> dict[str, Any]:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "aiConfigured": bool(os.getenv("GEMINI_API_KEY") or os.getenv("AI_API_KEY")),
     }
+
+
+@app.post("/api/ai/career-analysis")
+def career_analysis(payload: dict[str, Any]) -> dict[str, Any]:
+    """Run the evidence-based profile, gap, career, and learning handoffs."""
+    try:
+        result = CareerPipeline().run(payload)
+    except CareerPipelineError as error:
+        return {
+            "success": False,
+            "failed_agent": error.agent,
+            "error": str(error),
+        }
+    return {"success": True, "agents": result}
 
 
 @app.post("/api/ai/analyze-resume")
@@ -222,6 +193,32 @@ Skills: {json.dumps(payload.get('skills', []))}"""
         return generate_json(prompt, 0.3)
     except Exception:
         return {"fallback": True}
+
+
+@app.post("/api/ai/learning-chat")
+def learning_chat(payload: dict[str, Any]) -> dict[str, Any]:
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        raise HTTPException(400, "A message is required")
+
+    history = payload.get("history") or []
+    messages = [
+        {"role": item.get("role", "user"), "content": str(item.get("content", ""))}
+        for item in history[-12:]
+        if isinstance(item, dict) and item.get("content")
+    ]
+    messages.append({"role": "user", "content": message})
+    context = {
+        "target_career": payload.get("targetCareer") or "Software Engineer",
+        "skills": payload.get("skills") or [],
+        "skill_gaps": payload.get("gaps") or [],
+        "learning_outcomes": payload.get("outcomes") or [],
+    }
+    try:
+        reply = generate_text(LearningAgent().build_chat_prompt(context), messages)
+        return {"reply": reply}
+    except Exception as error:
+        raise HTTPException(502, f"Learning coach unavailable: {error}") from error
 
 
 NEWS = [
