@@ -625,7 +625,11 @@ Return pure JSON:
     }
     if (q) {
       const term = String(q).toLowerCase();
-      result = result.filter((a) => a.title.toLowerCase().includes(term) || a.summary.toLowerCase().includes(term));
+      result = result.filter((a) =>
+        a.title.toLowerCase().includes(term) ||
+        a.summary.toLowerCase().includes(term) ||
+        (Array.isArray(a.tags) && a.tags.some((tag) => String(tag).toLowerCase().includes(term)))
+      );
     }
 
     res.json({ articles: result });

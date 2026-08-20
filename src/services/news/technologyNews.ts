@@ -10,7 +10,17 @@ export async function fetchDailyTechNews(category?: string, query?: string): Pro
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data.articles)) {
-        return data.articles;
+        return data.articles.map((article: Partial<TechNewsArticle> & { tags?: string[] }) => ({
+          id: article.id || 'news_unknown',
+          title: article.title || 'Untitled article',
+          summary: article.summary || 'No summary available.',
+          category: article.category || 'Tech Trends',
+          date: article.date || 'Today',
+          source: article.source || 'Tech Bulletin',
+          read_time: article.read_time || '3 min read',
+          url: article.url || 'https://example.com',
+          tags: Array.isArray(article.tags) ? article.tags : [],
+        }));
       }
     }
   } catch (e) {
